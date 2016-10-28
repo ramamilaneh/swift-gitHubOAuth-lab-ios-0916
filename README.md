@@ -52,7 +52,7 @@ For now, you can run the application to see some animated octocats. They are che
  * If you don't have a **Client ID** and a **Client Secret** set up from previous labs, go to Settings > OAuth Applications > Developer Applications > Register and start registering your new application.
  * Whether you are registering a new application or have your application selected, find the header at the bottom of the form titled **Authoriation callback URL**.
  * Enter some text following this format: `gitHubOAuthLab-12345://callback`. The first section, `gitHubOAuthLab-12345`, can be whatever you want. It's intended to be unique to your application.
- * Head on over to your project in Xcode and select your project in the the Project Navigator.
+ * Head on over to your project in Xcode and select your project in the the Project Navigator. Reference this [screenshot](https://s3.amazonaws.com/learn-verified/github-xcode-url-types.jpg) to help you along the way.
  * In the editor, select your project target, then select **Info** and look at the bottom of the list for **URL Types**.
  * Expand the **URL Types** section and click on the plus sign.
  * Enter your URL Scheme using the unique name you created above (e.g., `gitHubOAuthLab-12345`) and press enter. This will update your `Info.plist` file with your new URL scheme.
