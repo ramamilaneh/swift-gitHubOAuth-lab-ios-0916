@@ -48,7 +48,7 @@ For now, you can run the application to see some animated octocats. They are che
 
 ### 1. Set up your callback URL
 ---
- * Head on over to [GitHub](https://github.com).
+ * Head on over to [GitHub](https://github.com). Reference this [screenshot](https://s3.amazonaws.com/learn-verified/github-oauth-registration.jpg) to help you along the way.
  * If you don't have a **Client ID** and a **Client Secret** set up from previous labs, go to Settings > OAuth Applications > Developer Applications > Register and start registering your new application.
  * Whether you are registering a new application or have your application selected, find the header at the bottom of the form titled **Authoriation callback URL**.
  * Enter some text following this format: `gitHubOAuthLab-12345://callback`. The first section, `gitHubOAuthLab-12345`, can be whatever you want. It's intended to be unique to your application.
