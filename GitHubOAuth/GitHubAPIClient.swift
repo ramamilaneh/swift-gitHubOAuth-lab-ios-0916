@@ -47,9 +47,7 @@ enum GitHubRequestType {
         }
     }
     
-    
-    
-    fileprivate func buildTokenRequestParameters(code: String) -> [String: String]? {
+    fileprivate func buildParams(with code: String) -> [String: String]? {
         
         switch self {
         case .token:
@@ -67,13 +65,7 @@ enum GitHubRequestType {
             return URL(string: BaseURL.standard + Path.oauth + Query.oauth)
         case .repositories:
             return URL(string: BaseURL.api + Path.repositories + Query.repositories)
-        case .star(repo: let repo):
-            guard let token = GitHubAPIClient.accessToken else {return nil}
-            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: token))
-        case .unStar(repo: let repo):
-            guard let token = GitHubAPIClient.accessToken else {return nil}
-            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: token))
-        case .checkStar(repo: let repo):
+        case .star(repo: let repo), .unStar(repo: let repo), .checkStar(repo: let repo):
             guard let token = GitHubAPIClient.accessToken else {return nil}
             return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: token))
         case .token:
@@ -157,7 +149,7 @@ struct GitHubAPIClient {
         case .token(url: let redirectURL):
             
             guard let code = redirectURL.getQueryItemValue(named: "code") else { return (nil, RequestError.code) }
-            guard let parameters = type.buildTokenRequestParameters(code: code) else { return (nil, RequestError.parameters) }
+            guard let parameters = type.buildParams(with: code) else { return (nil, RequestError.parameters) }
 
             var request = URLRequest(url: url)
             request.httpMethod = type.method!
