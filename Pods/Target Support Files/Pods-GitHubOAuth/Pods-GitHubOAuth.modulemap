@@ -1,0 +1,6 @@
+framework module Pods_GitHubOAuth {
+  umbrella header "Pods-GitHubOAuth-umbrella.h"
+
+  export *
+  module * { export * }
+}
