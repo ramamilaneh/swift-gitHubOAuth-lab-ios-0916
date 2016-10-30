@@ -42,8 +42,7 @@ enum GitHubRequestType {
         static let oauth = "?client_id=\(Secrets.clientID)&scope=repo"
         static let repositories = "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)"
         static func starred(token: String) -> String {
-            let query = "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)&access_token="
-            return query + token
+            return "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)&access_token=" + token
         }
     }
     
@@ -58,18 +57,17 @@ enum GitHubRequestType {
     
     }
     
-    var url: URL? {
+    var url: URL {
         
         switch self {
         case .oauth:
-            return URL(string: BaseURL.standard + Path.oauth + Query.oauth)
+            return URL(string: BaseURL.standard + Path.oauth + Query.oauth)!
         case .repositories:
-            return URL(string: BaseURL.api + Path.repositories + Query.repositories)
+            return URL(string: BaseURL.api + Path.repositories + Query.repositories)!
         case .star(repo: let repo), .unStar(repo: let repo), .checkStar(repo: let repo):
-            guard let token = GitHubAPIClient.accessToken else {return nil}
-            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: token))
+            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: GitHubAPIClient.accessToken))!
         case .token:
-            return URL(string: BaseURL.standard + Path.accessToken)
+            return URL(string: BaseURL.standard + Path.accessToken)!
         }
         
     }
@@ -97,74 +95,64 @@ enum GitHubRequestType {
 
 typealias JSON = [String: Any]
 typealias Starred = Bool
-typealias Response = ([JSON]?, Starred?, Error?) -> ()
+typealias Response = ([JSON]?, Starred?, Error?)
+typealias GitHubResponse =  ([JSON]?, Starred?, Error?) -> ()
 
 
 // MARK: GitHub API Client
 
 struct GitHubAPIClient {
     
-    fileprivate static var accessToken: String? {
-        
-        if let data = Locksmith.loadDataForUserAccount(userAccount: "github") {
-            return data["token"] as? String
-        }
-        return nil
-        
-    }
-    
     // MARK: Request
     
-    static func request(_ type: GitHubRequestType, completionHandler: @escaping Response) {
+    static func request(_ type: GitHubRequestType, completionHandler: @escaping GitHubResponse) {
         
-        let (request, error) = generateURLRequest(type: type)
+        guard let request = generateURLRequest(type) else { completionHandler(nil, nil, GitHubError.request); return }
         let session = generateURLSession()
         
-        guard let urlRequest = request else {completionHandler(nil, nil, error);return}
-        
-        generateResponse(type: type, session: session, request: urlRequest) { (JSON, starred, error) in
+        generateResponse(type: type, session: session, request: request) { (json, starred, error) in
             
             OperationQueue.main.addOperation {
-                completionHandler(JSON, starred, error)
+                
+                completionHandler(json, starred, error)
+                
             }
-    
+            
         }
-        
+
     }
     
     // MARK: Request Generation
     
-    private static func generateURLRequest(type: GitHubRequestType) -> (URLRequest?, Error?) {
-        
-        guard let url = type.url else { return(nil, RequestError.url) }
+    private static func generateURLRequest(_ type: GitHubRequestType) -> URLRequest? {
         
         switch type {
             
         case .repositories, .checkStar, .star, .unStar:
             
-            var request = URLRequest(url: url)
+            var request = URLRequest(url: type.url)
             request.httpMethod = type.method!
-            return (request, nil)
+            return request
         
         case .token(url: let redirectURL):
             
-            guard let code = redirectURL.getQueryItemValue(named: "code") else { return (nil, RequestError.code) }
-            guard let parameters = type.buildParams(with: code) else { return (nil, RequestError.parameters) }
+            guard let code = redirectURL.getQueryItemValue(named: "code") else { return nil }
+            guard let parameters = type.buildParams(with: code) else { return nil }
 
-            var request = URLRequest(url: url)
+            var request = URLRequest(url: type.url)
             request.httpMethod = type.method!
             request.addValue("application/json", forHTTPHeaderField: "Accept")
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             
             do {
                 request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: [])
-            } catch let error {
-                return (nil, error)
+                return request
+            } catch {
+                return nil
             }
-            return (request, nil)
             
         default:
-            return(nil, nil)
+            return nil
         }
         
     }
@@ -177,26 +165,30 @@ struct GitHubAPIClient {
     
     // MARK: Reponse Generation
         
-    static func generateResponse(type: GitHubRequestType, session: URLSession, request: URLRequest, completionHandler: @escaping Response) {
+    static func generateResponse(type: GitHubRequestType, session: URLSession, request: URLRequest, completionHandler: @escaping GitHubResponse) {
         
         session.dataTask(with: request) { (response) in
             
+            var (json, starred, error): Response
+            
             switch type {
             case .repositories:
-                let (JSON, error) = processRepositories(response: response)
-                completionHandler(JSON, nil, error)
+                (json, starred, error) = processRepositories(response: response)
+                
             case .token:
-                let error = processToken(response: response)
-                completionHandler(nil, nil, error)
+                (json, starred, error) = processToken(response: response)
+                
             case .checkStar:
-                let (isStarred, error) = processStarCheck(response: response)
-                completionHandler(nil, isStarred, error)
+                (json, starred, error) = processStarCheck(response: response)
+                
             case .star, .unStar:
-                let error = processStarred(response: response)
-                completionHandler(nil, nil, error)
+                (json, starred, error) = processStarred(response: response)
+                
             default:
-                completionHandler(nil, nil, nil)
+                (json, starred, error) = (nil, nil, GitHubError.response)
             }
+            
+            completionHandler(json, starred, error)
             
         }.resume()
 
@@ -204,110 +196,106 @@ struct GitHubAPIClient {
     
     // MARK: Response Processing
     
-    private static func processRepositories(response: (Data?, URLResponse?, Error?)) -> ([JSON]?, Error?) {
+    private static func processRepositories(response: (Data?, URLResponse?, Error?)) -> Response {
         
         let (data, _, error) = response
-        if error != nil { return (nil, error) }
-        guard let repoData = data else { return (nil, ResponseError.data) }
+        if error != nil { return (nil, nil, error) }
+        guard let repoData = data else { return (nil, nil, GitHubError.data) }
         
         do {
-            let JSON = try JSONSerialization.jsonObject(with: repoData, options: []) as? [[String: Any]]
-            return (JSON, nil)
+            let JSON = try JSONSerialization.jsonObject(with: repoData, options: []) as? [JSON]
+            return (JSON, nil, nil)
         } catch let error {
-            return (nil, error)
+            return (nil, nil, error)
         }
         
     }
     
-    private static func processToken(response: (Data?, URLResponse?, Error?)) -> Error? {
+    private static func processToken(response: (Data?, URLResponse?, Error?)) -> Response {
         
         let (data, _, error) = response
-        if error != nil { return error }
-        guard let tokenData = data else { return (ResponseError.data) }
+        if error != nil { return (nil, nil, error) }
+        guard let tokenData = data else { return (nil, nil, GitHubError.data) }
         
         do {
             let json = try JSONSerialization.jsonObject(with: tokenData, options: []) as? [String: Any]
-            guard let accessToken = json?["access_token"] as? String else { return ResponseError.token }
-            saveAccess(token: accessToken)
-            return nil
+            guard let accessToken = json?["access_token"] as? String else { return (nil, nil, GitHubError.token) }
+            let error = saveAccess(token: accessToken)
+            return (nil, nil, error)
     
         } catch let error {
-            return error
+            return (nil, nil, error)
         }
         
     }
     
-    private static func processStarCheck(response: (Data?, URLResponse?, Error?)) -> (Bool?, Error?) {
+    private static func processStarCheck(response: (Data?, URLResponse?, Error?)) -> Response {
         
         let (_, urlResponse, error) = response
-        if error != nil { return (nil, error) }
+        if error != nil { return (nil, nil, error) }
         let httpResponse = urlResponse as! HTTPURLResponse
         
         switch httpResponse.statusCode {
         case 404:
-            return (false, nil)
+            return (nil, false, nil)
         case 204:
-            return (true, nil)
+            return (nil, true, nil)
         default:
-            return (nil, nil)
+            return (nil, nil, GitHubError.statusCode)
         }
     
     }
     
-    private static func processStarred(response: (Data?, URLResponse?, Error?)) -> Error? {
+    private static func processStarred(response: (Data?, URLResponse?, Error?)) -> Response {
         
         let (_, urlResponse, error) = response
-        if error != nil { return error }
+        if error != nil { return (nil, nil, error) }
         let httpResponse = urlResponse as! HTTPURLResponse
         
         switch httpResponse.statusCode {
         case 204:
-            return nil
+            return (nil, nil, nil)
         default:
-            return nil
+            return (nil, nil, GitHubError.statusCode)
         }
     
     }
 
     // MARK: Token Handling 
     
-    static func hasToken() -> Bool {
-        
-        let token = getAccessToken()
-        if token != nil {
-            return true
-        }
-        return false
-        
-    }
-
-    private static func saveAccess(token: String) {
-        
-        do {
-            try Locksmith.saveData(data: ["token": token], forUserAccount: "github")
-        } catch let error {
-            print(error.localizedDescription)
-        }
-
-    }
-
-    private static func getAccessToken() -> String? {
+    fileprivate static var accessToken: String {
         
         if let data = Locksmith.loadDataForUserAccount(userAccount: "github") {
-            return data["token"] as? String
+            return data["token"] as! String
         }
-        return nil
+        return ""
         
     }
     
-    static func deleteAccessToken() -> Bool  {
+    static func hasToken() -> Bool {
+        
+        return self.accessToken.isEmpty ? false : true
+        
+    }
+
+    private static func saveAccess(token: String) -> Error? {
+        
+        do {
+            try Locksmith.saveData(data: ["token": token], forUserAccount: "github")
+            return nil
+        } catch let error {
+            return error
+        }
+
+    }
+    
+    static func deleteAccessToken() -> Error?  {
         
         do {
             try Locksmith.deleteDataForUserAccount(userAccount: "github")
-            return true
+            return nil
         } catch let error {
-            print(error.localizedDescription)
-            return false
+            return error
         }
         
     }
@@ -318,37 +306,24 @@ extension GitHubAPIClient {
     
     // MARK: Error Handling
     
-    enum RequestError: Error {
-        
-        case url
-        case code
-        case parameters
-        case request
-        
-        var description: String {
-            
-            switch self {
-            case .url: return "ERROR: Unable to create URL"
-            case .code: return "ERROR: Unable to parse temporary code from GitHub redirect URL"
-            case .parameters: return "ERROR: Unable to build parameters dictionary"
-            case .request: return "ERROR: Unable to build url request"
-            }
-        }
-    }
-    
-    enum ResponseError: Error {
+    enum GitHubError: Error {
         
         case data
+        case request
+        case response
+        case statusCode
         case token
-        case saveToken
         
-        var description: String {
+        var localizedDescription: String {
             
             switch self {
             case .data: return "ERROR: Data value is nil"
+            case .request: return "ERROR: Unable to build url request"
+            case .response: return "ERROR: Unable to process response"
+            case .statusCode: return "ERROR: Incorrect status code"
             case .token: return "ERROR: Unable to retrieve token from JSON"
-            case .saveToken: return "ERROR: Unable to save token"
             }
+            
         }
         
     }

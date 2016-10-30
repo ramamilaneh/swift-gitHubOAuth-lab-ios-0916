@@ -19,11 +19,7 @@ class RepositoryTableViewController: UITableViewController {
         
         store.getRepositories { error in
             
-            if error == nil {
-                self.tableView.reloadData()
-            } else {
-                print("ERROR: Unable to get repositories for table view")
-            }
+            (error == nil) ? self.tableView.reloadData() : print(error?.localizedDescription)
             
         }
 
@@ -42,10 +38,12 @@ class RepositoryTableViewController: UITableViewController {
 
     @IBAction func logoutButtonTapped(_ sender: AnyObject) {
         
-        if GitHubAPIClient.deleteAccessToken() {
+        let error = GitHubAPIClient.deleteAccessToken()
+        
+        if error == nil {
             NotificationCenter.default.post(name: .closeReposTVC, object: nil)
         } else {
-            print("ERROR: Unable to delete access token")
+            print(error?.localizedDescription)
         }
 
     }

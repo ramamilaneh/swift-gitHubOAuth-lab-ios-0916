@@ -83,8 +83,7 @@ class LoginViewController: UIViewController {
     
     private func presentSafariViewController() {
         
-        guard let authURL = GitHubRequestType.oauth.url else {return}
-        self.safariVC = SFSafariViewController(url: authURL)
+        self.safariVC = SFSafariViewController(url: GitHubRequestType.oauth.url)
         guard let safariVC = self.safariVC else {return}
         let navigationController = UINavigationController(rootViewController: safariVC)
         navigationController.setNavigationBarHidden(true, animated: false)
