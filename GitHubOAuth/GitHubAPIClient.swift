@@ -13,14 +13,13 @@ import Locksmith
 
 enum GitHubRequestType {
 
+    case checkStar(repo: Repository)
     case oauth
     case repositories
     case star(repo: Repository)
-    case unStar(repo: Repository)
-    case checkStar(repo: Repository)
     case token(url: URL)
-    
-    
+    case unStar(repo: Repository)
+
     private enum BaseURL {
         
         static let api = "https://api.github.com"
@@ -30,9 +29,9 @@ enum GitHubRequestType {
     
     private enum Path {
         
-        static let repositories = "/repositories"
         static let accessToken = "/login/oauth/access_token"
         static let oauth = "/login/oauth/authorize"
+        static let repositories = "/repositories"
         static func starred(repo: Repository) -> String { return "/user/starred/\(repo.fullName)" }
         
     }
@@ -57,36 +56,36 @@ enum GitHubRequestType {
     
     }
     
-    var url: URL {
-        
-        switch self {
-        case .oauth:
-            return URL(string: BaseURL.standard + Path.oauth + Query.oauth)!
-        case .repositories:
-            return URL(string: BaseURL.api + Path.repositories + Query.repositories)!
-        case .star(repo: let repo), .unStar(repo: let repo), .checkStar(repo: let repo):
-            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: GitHubAPIClient.accessToken))!
-        case .token:
-            return URL(string: BaseURL.standard + Path.accessToken)!
-        }
-        
-    }
-    
     var method: String? {
         
         switch self {
         case .checkStar, .repositories:
             return "GET"
+        case .oauth:
+            return nil
+        case .token:
+            return "POST"
         case .star:
             return "PUT"
         case .unStar:
             return "DELETE"
-        case .token:
-            return "POST"
-        case .oauth:
-            return nil
         }
+        
+    }
     
+    var url: URL {
+        
+        switch self {
+        case .checkStar(repo: let repo), .star(repo: let repo), .unStar(repo: let repo):
+            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: GitHubAPIClient.accessToken))!
+        case .oauth:
+            return URL(string: BaseURL.standard + Path.oauth + Query.oauth)!
+        case .repositories:
+            return URL(string: BaseURL.api + Path.repositories + Query.repositories)!
+        case .token:
+            return URL(string: BaseURL.standard + Path.accessToken)!
+        }
+        
     }
 
 }
@@ -172,22 +171,17 @@ struct GitHubAPIClient {
             var (json, starred, error): Response
             
             switch type {
-            case .repositories:
-                (json, starred, error) = processRepositories(response: response)
-                
-            case .token:
-                (json, starred, error) = processToken(response: response)
-                
             case .checkStar:
                 (json, starred, error) = processStarCheck(response: response)
-                
+            case .repositories:
+                (json, starred, error) = processRepositories(response: response)
             case .star, .unStar:
                 (json, starred, error) = processStarred(response: response)
-                
+            case .token:
+                (json, starred, error) = processToken(response: response)
             default:
                 (json, starred, error) = (nil, nil, GitHubError.response)
             }
-            
             completionHandler(json, starred, error)
             
         }.resume()
