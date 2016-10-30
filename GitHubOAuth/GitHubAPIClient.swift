@@ -294,10 +294,6 @@ struct GitHubAPIClient {
         
     }
     
-}
-
-extension GitHubAPIClient {
-    
     // MARK: Error Handling
     
     enum GitHubError: Error {

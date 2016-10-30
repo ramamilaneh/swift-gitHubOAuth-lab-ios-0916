@@ -78,7 +78,7 @@ class RepositoryTableViewCell: UITableViewCell {
                         
                         self.setImagesForError(button: self.starButton)
                         self.starButton.isSelected = false
-                        return
+                        print(error?.localizedDescription)
                         
                     }
                     
@@ -96,7 +96,7 @@ class RepositoryTableViewCell: UITableViewCell {
                         
                         self.setImagesForError(button: self.starButton)
                         self.starButton.isSelected = false
-                        return
+                        print(error?.localizedDescription)
                         
                     }
                     
