@@ -182,53 +182,33 @@ With all of that in mind, start by updating `generateURLRequest(_:)`.
   * The current format of `parameters` needs to be serialized using `JSONSerialization` before it's applied as the value to `.httpBody`. Use the class function on `JSONSerialization` called `data(withJSONObject:options:)` where the object is `parameters` and the options are an empty array.
  * After applying the serialized parameters to `.httpBody` return the `request`. `return nil` if the serialization fails.
 
-
-
-At the end of the last lab you received a temporary code back from GitHub. You are going to use that code to make a request to GitHub for the access token.
- * Inside the `safariLogin(_:)` method of the `LoginViewController`, call the `startAccessTokenRequest(url:completionHandler:)` method from the `GitHubAPIClient`.
- * Pass the URL received back from GitHub to the url parameter of the `startAccessTokenRequest(url:completionHandler:)` method.
-  * *Hint:* Remember the notification argument passed in from `safariLogin(_:)` has the url stored in the object property.
- * Head over to the `GitHubAPIClient` class to define the `startAccessTokenRequest(url:completionHandler:)` method.
-  * Use this order of tasks to define the method:
-    * Use the `NSURL` extension from the `Extensions` file to extract the code.
-    * Build your parameter dictionary for the request.
-      * "client_id": *your client id*
-      * "client_secret": *your client secret*
-      * "code": *temporary code from GitHub*
-    * Build your headers dictionary to receive JSON data back.
-      * "Accept": "application/json"
-    * Use `request(_:_:parameters:encoding:headers:)` from [Alamofire](http://cocoadocs.org/docsets/Alamofire/3.4.1/Functions.html#/s:F9Alamofire7requestFTOS_6MethodPS_20URLStringConvertible_10parametersGSqGVs10DictionarySSPs9AnyObject___8encodingOS_17ParameterEncoding7headersGSqGS2_SSSS___CS_7Request) to make a POST request using the `.token` string from the `URLRouter`, the parameter dictionary, and the header dictionary.
-    * If the request is successful, print response and call `completionHandler(true)`, else `completionHandler(false)`.
- * Run the application to see if you are getting a successful response.
-
-### 8. Save the access token to the keychain
+### 8. Update `generateResponse(type:session:request:completionHandler:)`  to handle the `token` case of the `GitHubRequestType` enum
 ---
- * Use `SwiftyJSON` to get the access token from the response you were working with in the previous step.
- * Call `saveAccess(token:completionHandler:)` to pass the access token you retrieved from the JSON data.
- * Define the `saveAccess(token:completionHandler:)` method using the [Locksmith](http://cocoadocs.org/docsets/Locksmith/2.0.8/) pod. Use the method, `try Locksmith.saveData(["some key": "some value"], forUserAccount: "myUserAccount")`.
-   * Key is "access token". Value is "*token from response*". User account is "github".
-   * The `completionHandler` should callback with true or false depending on whether the access token is saved successfully.
- * Back inside the response section of the `startAccessTokenRequest(url:completionHandler:)` method, update the order of tasks to be:
-   * Receive response.
-   * Serialize JSON data using SwiftyJSON.
-   * Call `saveAccess(token:completionHandler:)` method
-   * If save succeeded, call the completion handler of `startAccessTokenRequest(url:completionHandler:)` with the appropriate response.
-   * Run the application using print statements accordingly to see that everything is working correctly.
 
-### 9. Define the `getAccessToken()` method
----
- * Use the Locksmith method, `Locksmith.loadDataForUserAccount()` to retrieve the access token and return it.
- * Update the `starred(repoName:)` static function defined in the `URLRouter` enum.
-   * `starredURL` needs to be combined with the access token for user account requests.
- * Update the `hasToken()` method to check if there is a token saved.
-   * Use `getAccessToken()` to determine whether the method should return `true` or `false`.
- * Reset the simulator and run the application. At this point you should be able to log in again. Stop the application. Run it again and you should be directed to the table view controller containing a list of repositories.
+ * Add the `token` case to the switch statement. Call `processToken(response:)` to process the response. Use the other cases as a reference.
+
+### 9. Update `processToken(response:)` to handle the received access token
+
+ * Update the `processToken(response:)` method to get the "access_token" from the JSON dictionary (use the incoming `Data?` argument to implement the JSON serialization). Once you get the access token from the JSON dictionary, save it as a string using `saveAccess(token: String)`. The string is saved using the `Locksmith` pod. If all goes well, your `Response` return should be all `nil` values, otherwise bubble up an error in your response.
+  * _**HINT:**_ If you're unsure of how to construct the method, use the other response processing methods as a reference.
+
+### 10. Make the token request inside the `safariLogin(_:)` method of the `LoginViewController`   
+
+Now that the `GitHubAPIClient` file has been updated to handle the request for an access token, it's time to turn your attention back to the `LoginViewController`. If you remember, the `LoginViewController` presents a `SFSafariViewController` to begin the authorization process with GitHub.  
+
+When GitHub redirects to your application with a temporary code, `application(_:open:options:)` is called in the app delegate. This is where you posted a notification saying it's ok to close the safari view controller. The notification observer you added to the `LoginViewController` calls `safariLogin(_:)`. This is the method where you retrieved the URL from the notification `object` property.
+
+As mentioned previously, the URL containing the temporary code now needs to be passed in as a part of the request to the `GitHubAPIClient` using the `token` case of the `GitHubRequestType` enum.
+
+ * Call the `request(_:completionHandler:)` from `GitHubAPIClient` using the `token` request type. Pass the URL as the associated value.
+ * If error is `nil`, add the following statement: `NotificationCenter.default.post(name: .closeLoginVC, object: nil)`.
+  * _**NOTE:**_ The completion handler has three arguments. For the token request, you are only concerned with whether or not an error has occurred. If there has not been an error, a notification will be posted to an observer in the `AppController` to close the `LoginViewController` and present the `RepositoryTableViewController`.
+ * Build and run the application. If everything is set up correctly, you should see the `RepositoryTableViewController` displaying a list of repositories.
 
 ## Advanced
-Resetting the simulator and rerunning the application will indicate if everything is working correctly but it's not ideal. There are a few more pieces to this puzzle that can make it complete. Here's what's left:
 
- * Login
-    * The `LoginViewController` starts the login process **BUT** the `AppController` doesn't know about the outcome of the process. That means it doesn't know whether it should display the table view controller or not. `startAccessTokenRequest(url:completionHandler:)` is called inside the `LoginViewController` with a callback about whether the process succeeded. If it succeeds, post a notification using the appropriate `Notification` name. The `AppController` already has the observer set up.
+ * Starring
+  * Update the `starred(token:)` static function of the private `Query` enum inside `GitHubRequestType`. The incoming token argument needs to be added to the return string in order for the application to star/unstar the repositories listed in the `ReposTableViewController`. Build and run the application to see if a star icon appears in each row next to the repository name. A user should be able to tap a star icon to star/unstar repositories.
 
  * Logout
-   * The `ReposTableViewController` has an IBAction for the log out button. This method needs to call `deleteAccessToken(_:)` from `GitHubAPIClient` and use the completion handler to determine whether to post a notification to the `AppController` to close the table view controller. `deleteAccessToken` still needs to be defined. It should delete the token and call back with the outcome.
+   * The `RepositoryTableViewController` has an IBAction for the log out button. This method needs to call `deleteAccessToken()` from `GitHubAPIClient` and use the optional `Error` return to determine whether to post a notification to the `AppController` to close the table view controller. `deleteAccessToken()` still needs to be defined. It should delete the token and return an error if one occurs.

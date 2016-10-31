@@ -104,13 +104,13 @@ class LoginViewController: UIViewController {
             }
             print(url)
             
-//            GitHubAPIClient.request(.token(url: url), completionHandler: { (_, _, error) in
-//                if error == nil {
-//                    NotificationCenter.default.post(name: .closeLoginVC, object: nil)
-//                } else {
-//                    print("ERROR: token request failed")
-//                }
-//            })
+            GitHubAPIClient.request(.token(url: url), completionHandler: { (_, _, error) in
+                if error == nil {
+                    NotificationCenter.default.post(name: .closeLoginVC, object: nil)
+                } else {
+                    print("ERROR: token request failed")
+                }
+            })
    
         }
     }

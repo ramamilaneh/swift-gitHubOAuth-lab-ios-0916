@@ -41,7 +41,7 @@ enum GitHubRequestType {
         static let oauth = "?client_id=\(Secrets.clientID)&scope=repo"
         static let repositories = "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)"
         static func starred(token: String) -> String {
-            return "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)&access_token=" // + token
+            return "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)&access_token=" + token
         }
     }
     
@@ -177,10 +177,10 @@ struct GitHubAPIClient {
                 (json, starred, error) = processRepositories(response: response)
             case .star, .unStar:
                 (json, starred, error) = processStarred(response: response)
+            case .token:
+                (json, starred, error) = processToken(response: response)
             default:
                 (json, starred, error) = (nil, nil, GitHubError.response)
-//            case .token:
-//                (json, starred, error) = processToken(response: response)
             
             }
             completionHandler(json, starred, error)
@@ -240,49 +240,47 @@ struct GitHubAPIClient {
     
     private static func processToken(response: (Data?, URLResponse?, Error?)) -> Response {
         
-        //        let (data, _, error) = response
-        //        if error != nil { return (nil, nil, error) }
-        //        guard let tokenData = data else { return (nil, nil, GitHubError.data) }
-        //
-        //        do {
-        //            let json = try JSONSerialization.jsonObject(with: tokenData, options: []) as? [String: Any]
-        //            guard let accessToken = json?["access_token"] as? String else { return (nil, nil, GitHubError.token) }
-        //            let error = saveAccess(token: accessToken)
-        //            return (nil, nil, error)
-        //
-        //        } catch let error {
-        //            return (nil, nil, error)
-        //        }
-        return (nil, nil, nil)
+        let (data, _, error) = response
+        if error != nil { return (nil, nil, error) }
+        guard let tokenData = data else { return (nil, nil, GitHubError.data) }
+
+        do {
+            let json = try JSONSerialization.jsonObject(with: tokenData, options: []) as? [String: Any]
+            guard let accessToken = json?["access_token"] as? String else { return (nil, nil, GitHubError.token) }
+            let error = saveAccess(token: accessToken)
+            return (nil, nil, error)
+
+        } catch let error {
+            return (nil, nil, error)
+        }
+
     }
 
     // MARK: Token Handling 
     
     fileprivate static var accessToken: String {
         
-//        if let data = Locksmith.loadDataForUserAccount(userAccount: "github") {
-//            return data["token"] as! String
-//        }
+        if let data = Locksmith.loadDataForUserAccount(userAccount: "github") {
+            return data["token"] as! String
+        }
         return ""
         
     }
     
     static func hasToken() -> Bool {
         
-//        return self.accessToken.isEmpty ? false : true
-        return false
+        return self.accessToken.isEmpty ? false : true
         
     }
 
     private static func saveAccess(token: String) -> Error? {
         
-//        do {
-//            try Locksmith.saveData(data: ["token": token], forUserAccount: "github")
-//            return nil
-//        } catch let error {
-//            return error
-//        }
-        return nil
+        do {
+            try Locksmith.saveData(data: ["token": token], forUserAccount: "github")
+            return nil
+        } catch let error {
+            return error
+        }
 
     }
     
@@ -294,7 +292,7 @@ struct GitHubAPIClient {
 //        } catch let error {
 //            return error
 //        }
-        return nil
+
     }
     
     // MARK: Error Handling
