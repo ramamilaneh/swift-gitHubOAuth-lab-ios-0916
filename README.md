@@ -41,7 +41,7 @@ This project is similar to the previous GitHub related labs, however it has been
   * `Extensions` contains a `NSURL` extension for parsing query items and a `Notification.Name` extension of static notification names.
   * `Secrets` (you will need to add this file).
  * Pods
-  * `Locksmith` is a protocol-oriented library for working the keychain.
+  * `Locksmith` is a protocol-oriented library for working the keychain (e.g., save user's access token).
  * Etc.
 
 For now, you can run the application to see some animated octocats. They are cheering for you so let's get started!
@@ -103,7 +103,7 @@ In the previous step the user is directed to GitHub using a safari view controll
  * If the value equals `"com.apple.SafariViewService"`, return `true`.
   * _**Hint:**_ The value from the options dictionary is of type `Any` and needs to be a `String` in order to make the comparison.
 
-Up until now you probably haven't used `NotificationCenter` but you're about to take a crash course. In the simplest terms, you can **post** a notification saying, "HEY! SOMETHING HAPPENED!". An **observer** of the notification will be notified somewhere else in the application (and would probably say to themselves, "Why are you yelling at me? 😥").
+Up until now you probably haven't used `NotificationCenter` but you're about to take a crash course. In the simplest terms, you can **post** a notification saying, "HEY! SOMETHING HAPPENED!" An **observer** of the notification will be notified somewhere else in the application (and would probably say to themselves, "Why are you yelling at me? 😥").
 
 Here are the two notification statements you will use in your application:
 
@@ -144,7 +144,7 @@ Now that you have received a URL containing a temporary code from GitHub, you ca
   * Complete the function by returning the dictionary of parameters. The function should only return the dictionary for the `token` case. Otherwise, it should return `nil`.
  * Add the `token` case to the `method` computed variable and `return "POST"`.
  * Add the `token` case to the `url` computed variable and return the complete URL.
-  * The URL should contain the `standard` base url and the `accessToken` path. The `buildParams(with:)` function will be used elsewhere.
+  * The URL should contain the `standard` base url and the `accessToken` path. The `buildParams(with:)` function will be used in the next step.
 
 ### 7. Update `generateURLRequest(_:)` to handle the `token` case of the `GitHubRequestType` enum
 ---
@@ -170,9 +170,18 @@ With all of that in mind, start by updating `generateURLRequest(_:)`.
 
  * Add the `token` case.
   * Remember this case has an associated `URL` value. When the `token` case of the `GitHubRequestType` is used, the URL containing the temporary code is passed in. You should use the associated value to extract the temporary code from the URL that's passed in. You can capture the associated value in the case declaration like this: `case .token(url: let url)`.
- * Declare a string constant called `code` where the value is the return of a `URL` extension in the `Extensions` file called `getQueryItemValue(named:)`. temporary code from the URL (`token` case associated value). To get the code, use the `URL` extension in the `Extensions` file, `getQueryItemValue(named:)` a utility function so that when you pass in `"code"` as the `named:` argument, the function will find the query item for the key `"code"` using `URLComponents`. The function returns the code as an optional string.
- * Declare a constant called `parameters` where the value is the return of the `buildParams(with:)` function. The extracted code variable you just created needs to be added to a dictionary of parameters. Remember that you updated the `buildParams(with:)` function in the previous step. The next step is to call this function and pass in the code string in order to build a completed parameters dictionary for the request.
- * Declare a
+ * Declare a string constant called `code` where the value is the return of a `URL` extension in the `Extensions` file called `getQueryItemValue(named:)`. To get the code from the URL, pass in `"code"` as the `named:` argument, the function will find the query item for the key `"code"` using `URLComponents`. The function returns the code as an optional string.
+ * Declare a constant called `parameters` where the value is the return of the `buildParams(with:)` function. The `code` constant you just created needs to be added to a dictionary of parameters. Remember that you updated the `buildParams(with:)` function in the previous step. Use this function to pass in the code string in order to build a completed parameters dictionary for the request.
+ * Create a `URLRequest` called `request` and update the `.httpMethod` string property of the request using the type argument (Use the previous cases as a reference).
+ * Use the `addValue(_:forHTTPHeaderField:)` function on `URLRequest` to add the two following values to the header:
+  * `"application/json"` for header field, `"Accept"`.
+    * Included to indicate to GitHub how the response should be formatted.
+  * `"application/json"` for header field, `"Content-Type"`.
+    * Included to indicate to GitHub how the parameters are formatted in the request.
+ * Use the `.httpBody` data property of `URLRequest` to add your `parameters` dictionary.
+  * The current format of `parameters` needs to be serialized using `JSONSerialization` before it's applied as the value to `.httpBody`. Use the class function on `JSONSerialization` called `data(withJSONObject:options:)` where the object is `parameters` and the options are an empty array.
+ * After applying the serialized parameters to `.httpBody` return the `request`. `return nil` if the serialization fails.
+
 
 
 At the end of the last lab you received a temporary code back from GitHub. You are going to use that code to make a request to GitHub for the access token.
