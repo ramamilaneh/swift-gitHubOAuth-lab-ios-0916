@@ -188,12 +188,12 @@ With all of that in mind, start by updating `generateURLRequest(_:)`.
  * Add the `token` case to the switch statement. Call `processToken(response:)` to process the response. Use the other cases as a reference.
 
 ### 9. Update `processToken(response:)` to handle the received access token
-
+---
  * Update the `processToken(response:)` method to get the "access_token" from the JSON dictionary (use the incoming `Data?` argument to implement the JSON serialization). Once you get the access token from the JSON dictionary, save it as a string using `saveAccess(token: String)`. The string is saved using the `Locksmith` pod. If all goes well, your `Response` return should be all `nil` values, otherwise bubble up an error in your response.
   * _**HINT:**_ If you're unsure of how to construct the method, use the other response processing methods as a reference.
 
 ### 10. Make the token request inside the `safariLogin(_:)` method of the `LoginViewController`   
-
+---
 Now that the `GitHubAPIClient` file has been updated to handle the request for an access token, it's time to turn your attention back to the `LoginViewController`. If you remember, the `LoginViewController` presents a `SFSafariViewController` to begin the authorization process with GitHub.  
 
 When GitHub redirects to your application with a temporary code, `application(_:open:options:)` is called in the app delegate. This is where you posted a notification saying it's ok to close the safari view controller. The notification observer you added to the `LoginViewController` calls `safariLogin(_:)`. This is the method where you retrieved the URL from the notification `object` property.
