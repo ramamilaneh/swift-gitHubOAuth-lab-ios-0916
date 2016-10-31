@@ -102,7 +102,6 @@ class LoginViewController: UIViewController {
                 print("ERROR: Unable to receive URL from notification")
                 return
             }
-            print(url)
             
             GitHubAPIClient.request(.token(url: url), completionHandler: { (_, _, error) in
                 if error == nil {
