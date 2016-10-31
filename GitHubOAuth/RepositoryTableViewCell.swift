@@ -10,7 +10,6 @@ import UIKit
 
 class RepositoryTableViewCell: UITableViewCell {
     
-//    let store = RepositoryDataStore.sharedInstance
     var starButton: UIButton!
     var repository: Repository? {
         

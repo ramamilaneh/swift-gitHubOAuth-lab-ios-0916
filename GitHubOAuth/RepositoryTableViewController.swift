@@ -38,13 +38,13 @@ class RepositoryTableViewController: UITableViewController {
 
     @IBAction func logoutButtonTapped(_ sender: AnyObject) {
         
-        let error = GitHubAPIClient.deleteAccessToken()
-        
-        if error == nil {
-            NotificationCenter.default.post(name: .closeReposTVC, object: nil)
-        } else {
-            print(error?.localizedDescription)
-        }
+//        let error = GitHubAPIClient.deleteAccessToken()
+//        
+//        if error == nil {
+//            NotificationCenter.default.post(name: .closeReposTVC, object: nil)
+//        } else {
+//            print(error?.localizedDescription)
+//        }
 
     }
 
