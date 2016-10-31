@@ -12,6 +12,8 @@ class RepositoryTableViewController: UITableViewController {
 
     let store = RepositoryDataStore.sharedInstance
     
+    // MARK: View lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -25,6 +27,8 @@ class RepositoryTableViewController: UITableViewController {
 
     }
 
+    // MARK: Table view data source
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return store.repositories.count
     }
@@ -36,15 +40,17 @@ class RepositoryTableViewController: UITableViewController {
         return cell
     }
 
+    // MARK: Action
+    
     @IBAction func logoutButtonTapped(_ sender: AnyObject) {
         
-//        let error = GitHubAPIClient.deleteAccessToken()
-//        
-//        if error == nil {
-//            NotificationCenter.default.post(name: .closeReposTVC, object: nil)
-//        } else {
-//            print(error?.localizedDescription)
-//        }
+        let error = GitHubAPIClient.deleteAccessToken()
+        
+        if error == nil {
+            NotificationCenter.default.post(name: .closeReposTVC, object: nil)
+        } else {
+            print(error?.localizedDescription)
+        }
 
     }
 

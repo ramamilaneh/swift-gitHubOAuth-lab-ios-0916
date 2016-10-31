@@ -286,12 +286,12 @@ struct GitHubAPIClient {
     
     static func deleteAccessToken() -> Error?  {
         
-//        do {
-//            try Locksmith.deleteDataForUserAccount(userAccount: "github")
-//            return nil
-//        } catch let error {
-//            return error
-//        }
+        do {
+            try Locksmith.deleteDataForUserAccount(userAccount: "github")
+            return nil
+        } catch let error {
+            return error
+        }
 
     }
     

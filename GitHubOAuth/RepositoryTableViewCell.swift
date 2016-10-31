@@ -23,6 +23,7 @@ class RepositoryTableViewCell: UITableViewCell {
     }
     
     // MARK: Initialization
+    
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         
@@ -48,12 +49,38 @@ class RepositoryTableViewCell: UITableViewCell {
         
     }
     
-    // MARK: Button action
+    // MARK: Action
+    
     func starButtonPressed(_ sender: UIButton) {
         
         toggleStarStatus()
         
     }
+    
+    // MARK: Label
+    
+    private func updateTextLabel(text: String?) {
+        self.textLabel?.text = text
+    }
+    
+    // MARK: Button
+    
+    private func setImagesForStarred(button: UIButton) {
+        self.starButton.setImage(UIImage(named: "starred"), for: .normal)
+        self.starButton.setImage(UIImage(named: "starredSelected"), for: .selected)
+    }
+    
+    private func setImagesForUnstarred(button: UIButton) {
+        self.starButton.setImage(UIImage(named: "unstarred"), for: .normal)
+        self.starButton.setImage(UIImage(named: "unstarredSelected"), for: .selected)
+    }
+    
+    private func setImagesForError(button: UIButton) {
+        self.starButton.setImage(UIImage(named: "error"), for: .normal)
+        self.starButton.setImage(UIImage(named: "error"), for: .selected)
+    }
+    
+    // MARK: Networking (starring)
     
     private func toggleStarStatus() {
         
@@ -110,10 +137,6 @@ class RepositoryTableViewCell: UITableViewCell {
         
     }
     
-    private func updateTextLabel(text: String?) {
-        self.textLabel?.text = text
-    }
-    
     private func checkStarredStatus(repo: Repository) {
         
         GitHubAPIClient.request(.checkStar(repo: repo)) { (_, starred, error) in
@@ -142,19 +165,5 @@ class RepositoryTableViewCell: UITableViewCell {
         
     }
     
-    private func setImagesForStarred(button: UIButton) {
-        self.starButton.setImage(UIImage(named: "starred"), for: .normal)
-        self.starButton.setImage(UIImage(named: "starredSelected"), for: .selected)
-    }
-    
-    private func setImagesForUnstarred(button: UIButton) {
-        self.starButton.setImage(UIImage(named: "unstarred"), for: .normal)
-        self.starButton.setImage(UIImage(named: "unstarredSelected"), for: .selected)
-    }
-    
-    private func setImagesForError(button: UIButton) {
-        self.starButton.setImage(UIImage(named: "error"), for: .normal)
-        self.starButton.setImage(UIImage(named: "error"), for: .selected)
-    }
 }
 
