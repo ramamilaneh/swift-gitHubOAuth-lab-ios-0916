@@ -15,7 +15,7 @@
  1. Register your application with GitHub to receive a **Client ID** and a **Client Secret**.
  2. Set up an **Authorization callback URL** on GitHub.
  3. Set up a **URL Scheme** in Xcode for your application.
- 4. Direct user at login to GitHub for authorization.  
+ 4. Direct user from within your application to GitHub for authorization.  
  5. Handle callback from GitHub containing a temporary **code**.
  6. Use **code** to authenticate user and receive **access token**.
  7. Save the **access token** in your application.
@@ -82,7 +82,7 @@ The organization of the `GitHubAPIClient` file is different from previous GitHub
   * `"scope"`: `"repo"`
  * Add the `oauth` case to the `method` computed property and `return nil` within the `oauth` case.
  * Add the `oauth` case to the `url` computed property and return the complete URL. The complete URL should be the following, `BaseURL.standard + Path.oauth + Query.oauth`.
- 
+
 You might see that you have two errors in Xcode which state that there are other switch statements that are not exhaustive. For those switch statements,--feel free to add in default implementation or just mix in the `.oauth` case with another case for now as we'll be implementing this later.
 
 ### 4. Use SFSafariViewController to request authorization
@@ -99,12 +99,12 @@ You might see that you have two errors in Xcode which state that there are other
 ### 5. Handle the callback from GitHub
 ---
 In the previous step the user is directed to GitHub using a safari view controller to provide authorization. Once the user successfully completes authorization, the callback you provided in your GitHub account is used to trigger the URL Scheme you provided in your project settings. Additionally, the safari view controller calls a `UIApplicatioDelegate` method called `application(_:open:options:)` that passes a URL containing a temporary code received from the GitHub callback.
-    
+
  * Add the `application(_:open:options:)` method to your `AppDelegate` file. This method looks like the following:
- 
+
 ```swift
     func application(_ app: UIApplication, open url: URL, options: [UIApplicationOpenURLOptionsKey : Any] = [:]) -> Bool {
-           
+
     }
 ```
  * Get the value for the key `UIApplicationOpenURLOptionsKey.sourceApplication` from the options dictionary argument.
