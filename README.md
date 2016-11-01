@@ -71,7 +71,7 @@ For now, you can run the application to see some animated octocats. They are che
 ### 3. Update the `GitHubRequestType` enum to include an oauth request
 ---
 
-The organization of the `GitHubAPIClient` file is different from previous GitHub related labs. The `GitHubRequestType` enum has variables that provide the URL and HTTP Method for each type of request. The nested enums inside `GitHubRequestType` and the `buildParams(with:)` function are used to construct the different URL components of each type of request.
+The organization of the `GitHubAPIClient` file is different from previous GitHub related labs. The `GitHubRequestType` enum has associated types that provide the URL and HTTP Method for each type of request. The nested enums inside `GitHubRequestType` and the `buildParams(with:)` function are used to construct the different URL components of each type of request.
 
  * Begin by adding the `oauth` case to the `GitHubRequestType` enum.
   * The `oauth` case is used to redirect users to request GitHub access.
@@ -80,8 +80,10 @@ The organization of the `GitHubAPIClient` file is different from previous GitHub
  * Add a static constant to `Query` called `oauth`. Refer to the other queries already listed to understand how they are constructed. The string query should be constructed with the following parameters:
   * `"client_id"`: `Secrets.clientID`
   * `"scope"`: `"repo"`
- * Add the `oauth` case to the `method` computed variable and `return nil`.
- * Add the `oauth` case to the `url` computed variable and return the complete URL.
+ * Add the `oauth` case to the `method` computed property and `return nil` within the `oauth` case.
+ * Add the `oauth` case to the `url` computed property and return the complete URL. The complete URL should be the following, `BaseURL.standard + Path.oauth + Query.oauth`.
+ 
+You might see that you have two errors in Xcode which state that there are other switch statements that are not exhaustive. For those switch statements,--feel free to add in default implementation or just mix in the `.oauth` case with another case for now as we'll be implementing this later.
 
 ### 4. Use SFSafariViewController to request authorization
 ---
@@ -97,8 +99,14 @@ The organization of the `GitHubAPIClient` file is different from previous GitHub
 ### 5. Handle the callback from GitHub
 ---
 In the previous step the user is directed to GitHub using a safari view controller to provide authorization. Once the user successfully completes authorization, the callback you provided in your GitHub account is used to trigger the URL Scheme you provided in your project settings. Additionally, the safari view controller calls a `UIApplicatioDelegate` method called `application(_:open:options:)` that passes a URL containing a temporary code received from the GitHub callback.
-
- * Add the `application(_:open:options:)` method to your `AppDelegate` file.
+    
+ * Add the `application(_:open:options:)` method to your `AppDelegate` file. This method looks like the following:
+ 
+```swift
+    func application(_ app: UIApplication, open url: URL, options: [UIApplicationOpenURLOptionsKey : Any] = [:]) -> Bool {
+           
+    }
+```
  * Get the value for the key `UIApplicationOpenURLOptionsKey.sourceApplication` from the options dictionary argument.
  * If the value equals `"com.apple.SafariViewService"`, return `true`.
   * _**Hint:**_ The value from the options dictionary is of type `Any` and needs to be a `String` in order to make the comparison.
