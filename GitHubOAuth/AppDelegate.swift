@@ -21,14 +21,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ app: UIApplication, open url: URL, options: [UIApplicationOpenURLOptionsKey : Any] = [:]) -> Bool {
         
-        if let sourceAppKey = options[UIApplicationOpenURLOptionsKey.sourceApplication] {
-            
-            if (String(describing: sourceAppKey) == "com.apple.SafariViewService") {
-                NotificationCenter.default.post(name: .closeSafariVC, object: url)
-                return true
-            }
-            return false
+        guard let bundleID = options[UIApplicationOpenURLOptionsKey.sourceApplication] as? String else { return false }
+        
+        if bundleID == "com.apple.SafariViewService" {
+            NotificationCenter.default.post(name: .closeSafariVC, object: url)
+            return true
         }
+        
         return false
         
     }

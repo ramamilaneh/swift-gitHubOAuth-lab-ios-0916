@@ -8,8 +8,6 @@
 
 import UIKit
 import Locksmith
-
-// SOLUTION: import safari services, add delegate
 import SafariServices
 
 class LoginViewController: UIViewController {
