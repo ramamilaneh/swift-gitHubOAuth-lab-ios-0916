@@ -35,12 +35,12 @@ class LoginViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.loginImageView.startAnimating()
+        loginImageView.startAnimating()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        self.loginImageView.stopAnimating()
+        loginImageView.stopAnimating()
     }
     
     override func viewDidLayoutSubviews() {
@@ -54,8 +54,8 @@ class LoginViewController: UIViewController {
     
     private func configureButton() {
         
-        self.imageBackgroundView.layer.cornerRadius = 0.5 * self.imageBackgroundView.bounds.size.width
-        self.imageBackgroundView.clipsToBounds = true
+        imageBackgroundView.layer.cornerRadius = 0.5 * self.imageBackgroundView.bounds.size.width
+        imageBackgroundView.clipsToBounds = true
     }
     
     private func setUpImageViewAnimation() {
@@ -66,8 +66,8 @@ class LoginViewController: UIViewController {
             }
         }
         
-        self.loginImageView.animationImages = octocatImages
-        self.loginImageView.animationDuration = 2.0
+        loginImageView.animationImages = octocatImages
+        loginImageView.animationDuration = 2.0
         
     }
     
@@ -83,8 +83,8 @@ class LoginViewController: UIViewController {
     
     private func presentSafariViewController() {
         
-        self.safariVC = SFSafariViewController(url: GitHubRequestType.oauth.url)
-        guard let safariVC = self.safariVC else {return}
+        safariVC = SFSafariViewController(url: GitHubRequestType.oauth.url)
+        guard let safariVC = safariVC else {return}
         let navigationController = UINavigationController(rootViewController: safariVC)
         navigationController.setNavigationBarHidden(true, animated: false)
         present(navigationController, animated: true, completion: nil)
@@ -95,7 +95,7 @@ class LoginViewController: UIViewController {
     
     func safariLogin(_ notification: Notification) {
         
-        guard let safariVC = self.safariVC else {return}
+        guard let safariVC = safariVC else {return}
         safariVC.dismiss(animated: true) { 
             
             guard let url = notification.object as? URL else {

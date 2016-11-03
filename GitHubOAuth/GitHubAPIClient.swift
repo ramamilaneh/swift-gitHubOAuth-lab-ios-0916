@@ -77,7 +77,7 @@ enum GitHubRequestType {
         
         switch self {
         case .checkStar(repo: let repo), .star(repo: let repo), .unStar(repo: let repo):
-            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: GitHubAPIClient.accessToken))!
+            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: (GitHubAPIClient.accessToken) ?? ""))!
         case .oauth:
             return URL(string: BaseURL.standard + Path.oauth + Query.oauth)!
         case .repositories:
@@ -258,18 +258,16 @@ struct GitHubAPIClient {
 
     // MARK: Token Handling 
     
-    fileprivate static var accessToken: String {
+    fileprivate static var accessToken: String? {
         
-        if let data = Locksmith.loadDataForUserAccount(userAccount: "github") {
-            return data["token"] as! String
-        }
-        return ""
-        
+        guard let data = Locksmith.loadDataForUserAccount(userAccount: "github") else { return nil }
+        return data["token"] as? String
+    
     }
     
     static func hasToken() -> Bool {
         
-        return self.accessToken.isEmpty ? false : true
+        return (accessToken == nil) ? false : true
         
     }
 

@@ -11,7 +11,7 @@ import UIKit
 class AppController: UIViewController {
     
     @IBOutlet weak var containerView: UIView!
-    var currentViewController: UIViewController!
+    var actingViewController: UIViewController!
 
     // MARK: View lifecycle
     
@@ -28,33 +28,32 @@ class AppController: UIViewController {
     private func loadInitialViewController() {
         
         if GitHubAPIClient.hasToken() {
-            self.currentViewController = loadViewControllerWith(id: StoryboardID.reposTVC)
-            addCurrentViewController(self.currentViewController)
+            actingViewController = loadViewController(withID: .reposTVC)
         } else {
-            self.currentViewController = loadViewControllerWith(id: StoryboardID.loginVC)
-            addCurrentViewController(self.currentViewController)
+            actingViewController = loadViewController(withID: .loginVC)
         }
+        addActing(viewController: actingViewController)
         
     }
     
     private func addNotificationObservers() {
         
-        NotificationCenter.default.addObserver(self, selector: #selector(switchViewController(_:)), name: .closeLoginVC, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(switchViewController(_:)), name: .closeReposTVC, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(switchViewController(with:)), name: .closeLoginVC, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(switchViewController(with:)), name: .closeReposTVC, object: nil)
         
     }
     
     // MARK: View Controller Handling
     
-    private func loadViewControllerWith(id: String) -> UIViewController {
+    private func loadViewController(withID id: StoryboardID) -> UIViewController {
         
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
 
         switch id {
-        case StoryboardID.loginVC:
-            return storyboard.instantiateViewController(withIdentifier: id) as! LoginViewController
-        case StoryboardID.reposTVC:
-            let vc = storyboard.instantiateViewController(withIdentifier: id) as! RepositoryTableViewController
+        case .loginVC:
+            return storyboard.instantiateViewController(withIdentifier: id.rawValue) as! LoginViewController
+        case .reposTVC:
+            let vc = storyboard.instantiateViewController(withIdentifier: id.rawValue) as! RepositoryTableViewController
             let navVC = UINavigationController(rootViewController: vc)
             return navVC
         default:
@@ -64,49 +63,49 @@ class AppController: UIViewController {
         
     }
     
-    private func addCurrentViewController(_ controller: UIViewController) {
+    private func addActing(viewController: UIViewController) {
         
-        self.addChildViewController(controller)
-        self.containerView.addSubview(controller.view)
-        controller.view.frame = self.containerView.bounds
-        controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        controller.didMove(toParentViewController: self)
+        self.addChildViewController(viewController)
+        containerView.addSubview(viewController.view)
+        viewController.view.frame = containerView.bounds
+        viewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        viewController.didMove(toParentViewController: self)
         
     }
     
-    func switchViewController(_ notification: Notification) {
+    func switchViewController(with notification: Notification) {
         
         switch notification.name {
         case Notification.Name.closeLoginVC:
-            switchToViewControllerWith(id: StoryboardID.reposTVC)
+            switchToViewController(withID: .reposTVC)
         case Notification.Name.closeReposTVC:
-            switchToViewControllerWith(id: StoryboardID.loginVC)
+            switchToViewController(withID: .loginVC)
         default:
             fatalError("ERROR: Unable to match notification name")
         }
         
     }
     
-    private func switchToViewControllerWith(id: String) {
+    private func switchToViewController(withID id: StoryboardID) {
         
-        let oldViewController = self.currentViewController
-        oldViewController?.willMove(toParentViewController: nil)
+        let exitingViewController = actingViewController
+        exitingViewController?.willMove(toParentViewController: nil)
 
-        self.currentViewController = loadViewControllerWith(id: id)
-        self.addChildViewController(self.currentViewController)
+        actingViewController = loadViewController(withID: id)
+        self.addChildViewController(actingViewController)
 
-        addCurrentViewController(self.currentViewController)
-        self.currentViewController.view.alpha = 0
+        addActing(viewController: actingViewController)
+        actingViewController.view.alpha = 0
 
         UIView.animate(withDuration: 0.5, animations: {
 
-            self.currentViewController.view.alpha = 1
-            oldViewController?.view.alpha = 0
+            self.actingViewController.view.alpha = 1
+            exitingViewController?.view.alpha = 0
 
         }) { completed in
-            oldViewController?.view.removeFromSuperview()
-            oldViewController?.removeFromParentViewController()
-            self.currentViewController.didMove(toParentViewController: self)
+            exitingViewController?.view.removeFromSuperview()
+            exitingViewController?.removeFromParentViewController()
+            self.actingViewController.didMove(toParentViewController: self)
         }
         
     }
