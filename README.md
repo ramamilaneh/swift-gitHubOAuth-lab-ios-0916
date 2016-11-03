@@ -78,8 +78,8 @@ The organization of the `GitHubAPIClient` file is different from previous GitHub
  * Add a static constant to `BaseURL` called `standard` with a value of `"https://github.com"`.
  * Add a static constant to `Path` called `oauth` with a value of `"/login/oauth/authorize"`.
  * Add a static constant to `Query` called `oauth`. Refer to the other queries already listed to understand how they are constructed. The string query should be constructed with the following parameters:
-  * `"client_id"`: `Secrets.clientID`
-  * `"scope"`: `"repo"`
+  * `"client_id"`=`Secrets.clientID`
+  * `"scope"`=`"repo"`
  * Add the `oauth` case to the `method` computed property and `return nil` within the `oauth` case.
  * Add the `oauth` case to the `url` computed property and return the complete URL. The complete URL should be the following, `BaseURL.standard + Path.oauth + Query.oauth`.
 
