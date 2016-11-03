@@ -66,18 +66,18 @@ class RepositoryTableViewCell: UITableViewCell {
     // MARK: Button
     
     private func setImagesForStarred(button: UIButton) {
-        starButton.setImage(UIImage(named: "starred"), for: .normal)
-        starButton.setImage(UIImage(named: "starredSelected"), for: .selected)
+        self.starButton.setImage(UIImage(named: "starred"), for: .normal)
+        self.starButton.setImage(UIImage(named: "starredSelected"), for: .selected)
     }
     
     private func setImagesForUnstarred(button: UIButton) {
-        starButton.setImage(UIImage(named: "unstarred"), for: .normal)
-        starButton.setImage(UIImage(named: "unstarredSelected"), for: .selected)
+        self.starButton.setImage(UIImage(named: "unstarred"), for: .normal)
+        self.starButton.setImage(UIImage(named: "unstarredSelected"), for: .selected)
     }
     
     private func setImagesForError(button: UIButton) {
-        starButton.setImage(UIImage(named: "error"), for: .normal)
-        starButton.setImage(UIImage(named: "error"), for: .selected)
+        self.starButton.setImage(UIImage(named: "error"), for: .normal)
+        self.starButton.setImage(UIImage(named: "error"), for: .selected)
     }
     
     // MARK: Networking (starring)
@@ -88,7 +88,7 @@ class RepositoryTableViewCell: UITableViewCell {
         
         GitHubAPIClient.request(.checkStar(repo: repo)) { (_, starred, error) in
             
-            guard let isStarred = starred else { print("\(error?.localizedDescription)"); return }
+            guard let isStarred = starred else { print(error?.localizedDescription); return }
             
             self.starButton.isHidden = false
             
@@ -104,7 +104,7 @@ class RepositoryTableViewCell: UITableViewCell {
                         
                         self.setImagesForError(button: self.starButton)
                         self.starButton.isSelected = false
-                        print("\(error?.localizedDescription)")
+                        print(error?.localizedDescription)
                         
                     }
                     
@@ -122,7 +122,7 @@ class RepositoryTableViewCell: UITableViewCell {
                         
                         self.setImagesForError(button: self.starButton)
                         self.starButton.isSelected = false
-                        print("\(error?.localizedDescription)")
+                        print(error?.localizedDescription)
                         
                     }
                     
@@ -141,7 +141,7 @@ class RepositoryTableViewCell: UITableViewCell {
         
         GitHubAPIClient.request(.checkStar(repo: repo)) { (_, starred, error) in
             
-            guard let isStarred = starred else { print("\(error?.localizedDescription)"); return }
+            guard let isStarred = starred else { print(error?.localizedDescription); return }
             
             self.starButton.isHidden = false
             

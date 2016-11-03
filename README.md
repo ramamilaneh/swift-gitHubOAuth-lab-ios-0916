@@ -15,7 +15,7 @@
  1. Register your application with GitHub to receive a **Client ID** and a **Client Secret**.
  2. Set up an **Authorization callback URL** on GitHub.
  3. Set up a **URL Scheme** in Xcode for your application.
- 4. Direct user from within your application to GitHub for authorization.  
+ 4. Direct user at login to GitHub for authorization.  
  5. Handle callback from GitHub containing a temporary **code**.
  6. Use **code** to authenticate user and receive **access token**.
  7. Save the **access token** in your application.
@@ -71,19 +71,17 @@ For now, you can run the application to see some animated octocats. They are che
 ### 3. Update the `GitHubRequestType` enum to include an oauth request
 ---
 
-The organization of the `GitHubAPIClient` file is different from previous GitHub related labs. The `GitHubRequestType` enum has associated types that provide the URL and HTTP Method for each type of request. The nested enums inside `GitHubRequestType` and the `buildParams(with:)` function are used to construct the different URL components of each type of request.
+The organization of the `GitHubAPIClient` file is different from previous GitHub related labs. The `GitHubRequestType` enum has variables that provide the URL and HTTP Method for each type of request. The nested enums inside `GitHubRequestType` and the `buildParams(with:)` function are used to construct the different URL components of each type of request.
 
  * Begin by adding the `oauth` case to the `GitHubRequestType` enum.
   * The `oauth` case is used to redirect users to request GitHub access.
  * Add a static constant to `BaseURL` called `standard` with a value of `"https://github.com"`.
  * Add a static constant to `Path` called `oauth` with a value of `"/login/oauth/authorize"`.
  * Add a static constant to `Query` called `oauth`. Refer to the other queries already listed to understand how they are constructed. The string query should be constructed with the following parameters:
-  * `"client_id"`=`Secrets.clientID`
-  * `"scope"`=`"repo"`
- * Add the `oauth` case to the `method` computed property and `return nil` within the `oauth` case.
- * Add the `oauth` case to the `url` computed property and return the complete URL. The complete URL should be the following, `BaseURL.standard + Path.oauth + Query.oauth`.
-
-You might see that you have two errors in Xcode which state that there are other switch statements that are not exhaustive. For those switch statements,--feel free to add in default implementation or just mix in the `.oauth` case with another case for now as we'll be implementing this later.
+  * `"client_id"`: `Secrets.clientID`
+  * `"scope"`: `"repo"`
+ * Add the `oauth` case to the `method` computed variable and `return nil`.
+ * Add the `oauth` case to the `url` computed variable and return the complete URL.
 
 ### 4. Use SFSafariViewController to request authorization
 ---
@@ -100,13 +98,7 @@ You might see that you have two errors in Xcode which state that there are other
 ---
 In the previous step the user is directed to GitHub using a safari view controller to provide authorization. Once the user successfully completes authorization, the callback you provided in your GitHub account is used to trigger the URL Scheme you provided in your project settings. Additionally, the safari view controller calls a `UIApplicatioDelegate` method called `application(_:open:options:)` that passes a URL containing a temporary code received from the GitHub callback.
 
- * Add the `application(_:open:options:)` method to your `AppDelegate` file. This method looks like the following:
-
-```swift
-    func application(_ app: UIApplication, open url: URL, options: [UIApplicationOpenURLOptionsKey : Any] = [:]) -> Bool {
-
-    }
-```
+ * Add the `application(_:open:options:)` method to your `AppDelegate` file.
  * Get the value for the key `UIApplicationOpenURLOptionsKey.sourceApplication` from the options dictionary argument.
  * If the value equals `"com.apple.SafariViewService"`, return `true`.
   * _**Hint:**_ The value from the options dictionary is of type `Any` and needs to be a `String` in order to make the comparison.
@@ -145,7 +137,7 @@ Now that you have received a URL containing a temporary code from GitHub, you ca
 
  * Begin by adding the `token` case to the `GitHubRequestType` enum.
   * The `token` case is used to request an access token.
- * Update the `token` case to accept a `URL` argument named `url` as an associated type.
+ * Update the `token` case to accept a `URL` argument named `url` as an associated value.
  * The token request should use the `standard` static constant from the `BaseURL` enum.
  * Add a static constant to `Path` called `accessToken` with a value of `"/login/oauth/access_token"`.
  * Instead of adding parameters to the `Query` enum, you are going to update the `buildParams(with code: String)` function that returns a dictionary of parameters. When requesting the access token, you will need to provide your `"client_id"`, `"client_secret"`, and the temporary `"code"` you received back from GitHub as parameters. The `code` argument in the function is the temporary code that needs to be included.
@@ -177,7 +169,7 @@ Before you move forward, take a moment to look through `GitHubAPIClient`. Take n
 With all of that in mind, start by updating `generateURLRequest(_:)`.
 
  * Add the `token` case.
-  * Remember this case has an associated `URL` type. When the `token` case of the `GitHubRequestType` is used, the URL containing the temporary code is passed in. You should use the value of the associated type to extract the temporary code from the URL that's passed in. You can capture the value in the case declaration like this: `case .token(url: let url)`.
+  * Remember this case has an associated `URL` value. When the `token` case of the `GitHubRequestType` is used, the URL containing the temporary code is passed in. You should use the associated value to extract the temporary code from the URL that's passed in. You can capture the associated value in the case declaration like this: `case .token(url: let url)`.
  * Declare a string constant called `code` where the value is the return of a `URL` extension in the `Extensions` file called `getQueryItemValue(named:)`. To get the code from the URL, pass in `"code"` as the `named:` argument, the function will find the query item for the key `"code"` using `URLComponents`. The function returns the code as an optional string.
  * Declare a constant called `parameters` where the value is the return of the `buildParams(with:)` function. The `code` constant you just created needs to be added to a dictionary of parameters. Remember that you updated the `buildParams(with:)` function in the previous step. Use this function to pass in the code string in order to build a completed parameters dictionary for the request.
  * Create a `URLRequest` called `request` and update the `.httpMethod` string property of the request using the type argument (Use the previous cases as a reference).
@@ -208,7 +200,7 @@ When GitHub redirects to your application with a temporary code, `application(_:
 
 As mentioned previously, the URL containing the temporary code now needs to be passed in as a part of the request to the `GitHubAPIClient` using the `token` case of the `GitHubRequestType` enum.
 
- * Call the `request(_:completionHandler:)` from `GitHubAPIClient` using the `token` request type. Pass the URL as the value of the associated type.
+ * Call the `request(_:completionHandler:)` from `GitHubAPIClient` using the `token` request type. Pass the URL as the associated value.
  * If error is `nil`, add the following statement: `NotificationCenter.default.post(name: .closeLoginVC, object: nil)`.
   * _**NOTE:**_ The completion handler has three arguments. For the token request, you are only concerned with whether or not an error has occurred. If there has not been an error, a notification will be posted to an observer in the `AppController` to close the `LoginViewController` and present the `RepositoryTableViewController`.
  * Build and run the application. If everything is set up correctly, you should see the `RepositoryTableViewController` displaying a list of repositories.

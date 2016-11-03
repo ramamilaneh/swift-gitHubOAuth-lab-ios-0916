@@ -9,10 +9,10 @@
 
 import Foundation
 
-enum StoryboardID: String {
+enum StoryboardID {
     
-    case loginVC = "login-view-controller"
-    case reposTVC = "repository-table-view-controller"
-    case reposNavVC = "repository-navigation-view-controller"
+    static let loginVC = "login-view-controller"
+    static let reposTVC = "repository-table-view-controller"
+    static let reposNavVC = "repository-navigation-view-controller"
 }
 

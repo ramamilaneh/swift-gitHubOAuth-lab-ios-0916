@@ -12,15 +12,18 @@ import Locksmith
 // MARK: Request Type
 
 enum GitHubRequestType {
-
+    
     case checkStar(repo: Repository)
     case repositories
     case star(repo: Repository)
     case unStar(repo: Repository)
-
+    case oauth
+    case token(url: URL)
+    
     private enum BaseURL {
         
         static let api = "https://api.github.com"
+        static let standard = "https://github.com"
         
     }
     
@@ -28,20 +31,32 @@ enum GitHubRequestType {
         
         static let repositories = "/repositories"
         static func starred(repo: Repository) -> String { return "/user/starred/\(repo.fullName)" }
+        static let oauth = "/login/oauth/authorize"
+        static let accessToken = "/login/oauth/access_token"
         
     }
     
     private enum Query {
-    
+        
         static let repositories = "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)"
         static func starred(token: String) -> String {
-            return "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)&access_token="
+            return "?client_id=\(Secrets.clientID)&client_secret=\(Secrets.clientSecret)&access_token=\(token)"
         }
+        static let oauth = "?client_id=\(Secrets.clientID)&scope=repo"
     }
     
     fileprivate func buildParams(with code: String) -> [String: String]? {
-    
-        return nil
+        let parameters = ["client_id": Secrets.clientID,
+                          "client_secret": Secrets.clientSecret,
+                          "code": code]
+        switch self {
+        case .token:
+            return parameters
+        default:
+            return nil
+        }
+        
+        
     }
     
     var method: String? {
@@ -53,6 +68,10 @@ enum GitHubRequestType {
             return "PUT"
         case .unStar:
             return "DELETE"
+        case .oauth:
+            return nil
+        case .token:
+            return "POST"
         }
         
     }
@@ -61,13 +80,17 @@ enum GitHubRequestType {
         
         switch self {
         case .checkStar(repo: let repo), .star(repo: let repo), .unStar(repo: let repo):
-            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: (GitHubAPIClient.accessToken) ?? ""))!
+            return URL(string: BaseURL.api + Path.starred(repo: repo) + Query.starred(token: GitHubAPIClient.accessToken))!
         case .repositories:
             return URL(string: BaseURL.api + Path.repositories + Query.repositories)!
+        case .oauth:
+            return URL(string: BaseURL.standard + Path.oauth + Query.oauth)!
+        case .token:
+            return URL(string: BaseURL.standard + Path.accessToken)!
         }
         
     }
-
+    
 }
 
 // MARK: Response Typealias
@@ -98,7 +121,7 @@ struct GitHubAPIClient {
             }
             
         }
-
+        
     }
     
     // MARK: Request Generation
@@ -112,7 +135,19 @@ struct GitHubAPIClient {
             var request = URLRequest(url: type.url)
             request.httpMethod = type.method!
             return request
-            
+        case .token(url: let url):
+            let code = url.getQueryItemValue(named: "code")
+            let parameters = type.buildParams(with: code!)
+            var request = URLRequest(url: type.url)
+            request.httpMethod = type.method!
+            request.addValue("application/json", forHTTPHeaderField: "Accept")
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: parameters!, options: [])
+                return request
+            }catch{
+                return nil
+            }
         default:
             return nil
         }
@@ -120,13 +155,13 @@ struct GitHubAPIClient {
     }
     
     // MARK: Session Generation
-        
+    
     private static func generateURLSession() -> URLSession {
         return URLSession(configuration: .default)
     }
     
     // MARK: Response Generation
-        
+    
     static func generateResponse(type: GitHubRequestType, session: URLSession, request: URLRequest, completionHandler: @escaping GitHubResponse) {
         
         session.dataTask(with: request) { (response) in
@@ -140,14 +175,16 @@ struct GitHubAPIClient {
                 (json, starred, error) = processRepositories(response: response)
             case .star, .unStar:
                 (json, starred, error) = processStarred(response: response)
+            case .token:
+               (json, starred, error) =  processToken(response: response)
             default:
                 (json, starred, error) = (nil, nil, GitHubError.response)
-            
+                
             }
             completionHandler(json, starred, error)
             
-        }.resume()
-
+            }.resume()
+        
     }
     
     // MARK: Response Processing
@@ -181,7 +218,7 @@ struct GitHubAPIClient {
         default:
             return (nil, nil, GitHubError.statusCode)
         }
-    
+        
     }
     
     private static func processStarred(response: (Data?, URLResponse?, Error?)) -> Response {
@@ -196,30 +233,45 @@ struct GitHubAPIClient {
         default:
             return (nil, nil, GitHubError.statusCode)
         }
-    
+        
     }
     
     private static func processToken(response: (Data?, URLResponse?, Error?)) -> Response {
-        
+        let (data, _, error) = response
+        if error != nil { return (nil, nil, error) }
+        if let unwrappedData = data {
+            
+            print("1. \(unwrappedData)")
+            do{
+              let response = try JSONSerialization.jsonObject(with: unwrappedData, options: []) as! [String:Any]
+                let accessToken = response["access_token"] as! String
+                return (nil, nil, saveAccess(token: accessToken))
+                
+            }catch{
+                
+            }
+        }
         return (nil, nil, nil)
-
-    }
-
-    // MARK: Token Handling 
-    
-    fileprivate static var accessToken: String? {
         
-        guard let data = Locksmith.loadDataForUserAccount(userAccount: "github") else { return nil }
-        return data["token"] as? String
+    }
     
+    // MARK: Token Handling
+    
+    fileprivate static var accessToken: String {
+        
+        if let data = Locksmith.loadDataForUserAccount(userAccount: "github") {
+            return data["token"] as! String
+        }
+        return ""
+        
     }
     
     static func hasToken() -> Bool {
         
-        return (accessToken == nil) ? false : true
+        return self.accessToken.isEmpty ? false : true
         
     }
-
+    
     private static func saveAccess(token: String) -> Error? {
         
         do {
@@ -228,13 +280,18 @@ struct GitHubAPIClient {
         } catch let error {
             return error
         }
-
+        
     }
     
     static func deleteAccessToken() -> Error?  {
         
-        return nil
-
+        do {
+            try Locksmith.deleteDataForUserAccount(userAccount: "github")
+            return nil
+        } catch let error {
+            return error
+        }
+        
     }
     
     // MARK: Error Handling
