@@ -9,16 +9,12 @@
 import UIKit
 import Locksmith
 
-// SOLUTION: import safari services, add delegate
-import SafariServices
-
 class LoginViewController: UIViewController {
     
     @IBOutlet weak var loginImageView: UIImageView!
     @IBOutlet weak var loginButton: UIButton!
     @IBOutlet weak var imageBackgroundView: UIView!
     
-    var safariVC: SFSafariViewController?
     let numberOfOctocatImages = 10
     var octocatImages: [UIImage] = []
     
@@ -28,8 +24,6 @@ class LoginViewController: UIViewController {
         super.viewDidLoad()
         
         setUpImageViewAnimation()
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(safariLogin(_:)), name: .closeSafariVC, object: nil)
 
     }
     
@@ -75,43 +69,6 @@ class LoginViewController: UIViewController {
     
     @IBAction func loginButtonTapped(_ sender: UIButton) {
         
-        presentSafariViewController()
-    
-    }
-    
-    // MARK: Transition
-    
-    private func presentSafariViewController() {
-        
-        safariVC = SFSafariViewController(url: GitHubRequestType.oauth.url)
-        guard let safariVC = safariVC else {return}
-        let navigationController = UINavigationController(rootViewController: safariVC)
-        navigationController.setNavigationBarHidden(true, animated: false)
-        present(navigationController, animated: true, completion: nil)
-        
-    }
-    
-    // MARK: Notification
-    
-    func safariLogin(_ notification: Notification) {
-        
-        guard let safariVC = safariVC else {return}
-        safariVC.dismiss(animated: true) { 
-            
-            guard let url = notification.object as? URL else {
-                print("ERROR: Unable to receive URL from notification")
-                return
-            }
-            
-            GitHubAPIClient.request(.token(url: url), completionHandler: { (_, _, error) in
-                if error == nil {
-                    NotificationCenter.default.post(name: .closeLoginVC, object: nil)
-                } else {
-                    print("ERROR: token request failed")
-                }
-            })
-   
-        }
     }
 
 }
