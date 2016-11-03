@@ -137,7 +137,7 @@ Now that you have received a URL containing a temporary code from GitHub, you ca
 
  * Begin by adding the `token` case to the `GitHubRequestType` enum.
   * The `token` case is used to request an access token.
- * Update the `token` case to accept a `URL` argument named `url` as an associated value.
+ * Update the `token` case to accept a `URL` argument named `url` as an associated type.
  * The token request should use the `standard` static constant from the `BaseURL` enum.
  * Add a static constant to `Path` called `accessToken` with a value of `"/login/oauth/access_token"`.
  * Instead of adding parameters to the `Query` enum, you are going to update the `buildParams(with code: String)` function that returns a dictionary of parameters. When requesting the access token, you will need to provide your `"client_id"`, `"client_secret"`, and the temporary `"code"` you received back from GitHub as parameters. The `code` argument in the function is the temporary code that needs to be included.
@@ -169,7 +169,7 @@ Before you move forward, take a moment to look through `GitHubAPIClient`. Take n
 With all of that in mind, start by updating `generateURLRequest(_:)`.
 
  * Add the `token` case.
-  * Remember this case has an associated `URL` value. When the `token` case of the `GitHubRequestType` is used, the URL containing the temporary code is passed in. You should use the associated value to extract the temporary code from the URL that's passed in. You can capture the associated value in the case declaration like this: `case .token(url: let url)`.
+  * Remember this case has an associated `URL` type. When the `token` case of the `GitHubRequestType` is used, the URL containing the temporary code is passed in. You should use the value of the associated type to extract the temporary code from the URL that's passed in. You can capture the value in the case declaration like this: `case .token(url: let url)`.
  * Declare a string constant called `code` where the value is the return of a `URL` extension in the `Extensions` file called `getQueryItemValue(named:)`. To get the code from the URL, pass in `"code"` as the `named:` argument, the function will find the query item for the key `"code"` using `URLComponents`. The function returns the code as an optional string.
  * Declare a constant called `parameters` where the value is the return of the `buildParams(with:)` function. The `code` constant you just created needs to be added to a dictionary of parameters. Remember that you updated the `buildParams(with:)` function in the previous step. Use this function to pass in the code string in order to build a completed parameters dictionary for the request.
  * Create a `URLRequest` called `request` and update the `.httpMethod` string property of the request using the type argument (Use the previous cases as a reference).
@@ -200,7 +200,7 @@ When GitHub redirects to your application with a temporary code, `application(_:
 
 As mentioned previously, the URL containing the temporary code now needs to be passed in as a part of the request to the `GitHubAPIClient` using the `token` case of the `GitHubRequestType` enum.
 
- * Call the `request(_:completionHandler:)` from `GitHubAPIClient` using the `token` request type. Pass the URL as the associated value.
+ * Call the `request(_:completionHandler:)` from `GitHubAPIClient` using the `token` request type. Pass the URL as the value of the associated type.
  * If error is `nil`, add the following statement: `NotificationCenter.default.post(name: .closeLoginVC, object: nil)`.
   * _**NOTE:**_ The completion handler has three arguments. For the token request, you are only concerned with whether or not an error has occurred. If there has not been an error, a notification will be posted to an observer in the `AppController` to close the `LoginViewController` and present the `RepositoryTableViewController`.
  * Build and run the application. If everything is set up correctly, you should see the `RepositoryTableViewController` displaying a list of repositories.
